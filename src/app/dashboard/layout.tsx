@@ -11,29 +11,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const check = async () => {
-      try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { router.replace('/login'); return }
-        
-        const { data: p, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        
-        if (error || !p) { 
-          console.log('profile error:', error)
-          router.replace('/login')
-          return 
-        }
-        if (!p.approved) { router.replace('/pending'); return }
-        setProfile(p)
-        setLoading(false)
-      } catch(e) {
-        console.log('catch error:', e)
+      const supabase = createClient()
+      console.log('1. checking user...')
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      console.log('2. user:', user, 'error:', userError)
+      if (!user) { 
+        console.log('3. no user, redirecting to login')
         router.replace('/login')
+        return 
       }
+      console.log('4. fetching profile for:', user.id)
+      const { data: p, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      console.log('5. profile:', p, 'error:', profileError)
+      if (profileError || !p) { 
+        router.replace('/login')
+        return 
+      }
+      if (!p.approved) { router.replace('/pending'); return }
+      setProfile(p)
+      setLoading(false)
     }
     check()
   }, [])
