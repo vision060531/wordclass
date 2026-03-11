@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import TeacherResultsClient from './TeacherResultsClient'
 
 export default async function TeacherResultsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Get classes the teacher manages

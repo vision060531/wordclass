@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { format, parseISO } from 'date-fns'
 
 export default async function StudentResultsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: results } = await supabase

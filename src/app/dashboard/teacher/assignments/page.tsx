@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import TeacherAssignmentsClient from './TeacherAssignmentsClient'
 
 export default async function TeacherAssignmentsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: classes } = await supabase.from('classes').select('id, name').eq('teacher_id', user!.id)

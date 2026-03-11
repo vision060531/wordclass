@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import TeacherClassesClient from './TeacherClassesClient'
 
 export default async function TeacherClassesPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: classes } = await supabase

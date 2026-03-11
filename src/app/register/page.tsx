@@ -17,7 +17,7 @@ export default function RegisterPage() {
     if (!form.name || !form.email || !form.password) { setError('모든 항목을 입력해주세요.'); return }
     if (form.password.length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return }
     setLoading(true)
-    const supabase = createClient()
+    const supabase = await createClient()
     const { error } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,

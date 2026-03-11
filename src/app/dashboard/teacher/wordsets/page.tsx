@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import TeacherWordsetsClient from './TeacherWordsetsClient'
 
 export default async function TeacherWordsetsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const { data: wordsets } = await supabase

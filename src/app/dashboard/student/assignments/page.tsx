@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import StudentAssignmentsClient from './StudentAssignmentsClient'
 
 export default async function StudentAssignmentsPage() {
-  const supabase = createClient()
+  const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   // Get classes the student belongs to

@@ -14,7 +14,7 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError('')
     setLoading(true)
-    const supabase = createClient()
+    const supabase = await createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError('이메일 또는 비밀번호가 올바르지 않습니다.')
