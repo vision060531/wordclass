@@ -1,11 +1,9 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -15,14 +13,15 @@ export default function LoginPage() {
     setError('')
     if (!identifier || !password) { setError('아이디와 비밀번호를 입력해주세요.'); return }
     setLoading(true)
-    const supabase = await createClient()
+    const supabase = createClient()
     const email = `${identifier}@wordclass.local`
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError('아이디 또는 비밀번호가 올바르지 않습니다.')
       setLoading(false)
     } else {
-window.location.href = '/dashboard'
+      window.location.href = '/dashboard'
+    }
   }
 
   return (
