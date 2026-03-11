@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/lib/types'
 import {
   LayoutDashboard, BookOpen, Users, ClipboardList,
-  Settings, LogOut, Menu, X, GraduationCap, Star
+  LogOut, Menu, GraduationCap, Star
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -30,7 +30,7 @@ export default function DashboardShell({ profile, children }: Props) {
       className={clsx(
         'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
         pathname === href || pathname.startsWith(href + '/')
-          ? 'bg-accent text-white'
+          ? 'bg-accent text-[#0a0f0c]'
           : 'text-[var(--muted)] hover:text-[var(--text)] hover:bg-surface2'
       )}
       onClick={() => setMobileOpen(false)}>
@@ -62,12 +62,9 @@ export default function DashboardShell({ profile, children }: Props) {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Desktop sidebar */}
       <aside className="hidden md:flex flex-col w-56 flex-shrink-0 bg-surface border-r border-[var(--border)]">
         <Sidebar />
       </aside>
-
-      {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
@@ -76,10 +73,7 @@ export default function DashboardShell({ profile, children }: Props) {
           </aside>
         </div>
       )}
-
-      {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Mobile topbar */}
         <header className="md:hidden flex items-center justify-between px-4 h-14 bg-surface border-b border-[var(--border)]">
           <button onClick={() => setMobileOpen(true)}><Menu size={22} /></button>
           <div className="font-mono font-bold text-accent">WordClass</div>
