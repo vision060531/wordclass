@@ -35,7 +35,7 @@ export default function LoginPage() {
           <div className="mb-4">
             <label className="block text-xs text-[var(--muted)] mb-1.5">아이디</label>
             <input className="input" type="text"
-              placeholder="학번 / 교번 / admin"
+              placeholder="아이디"
               value={identifier}
               onChange={e => setIdentifier(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()} />
