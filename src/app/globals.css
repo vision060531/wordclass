@@ -24,12 +24,10 @@ body {
   min-height: 100vh;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* Flashcard flip */
 .flashcard-wrap { perspective: 1000px; }
 .flashcard {
   position: relative;
@@ -56,7 +54,7 @@ body {
     @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border-0 cursor-pointer text-sm font-medium transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply bg-accent text-white hover:bg-purple-600 hover:-translate-y-px;
+    @apply bg-accent text-[var(--bg)] hover:opacity-90 hover:-translate-y-px;
   }
   .btn-secondary {
     @apply bg-surface2 text-[var(--text)] border border-[var(--border)] hover:border-accent hover:text-accent;
@@ -81,7 +79,7 @@ body {
   .badge {
     @apply inline-block px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  .badge-accent { @apply bg-purple-500/20 text-accent; }
+  .badge-accent { @apply bg-green-500/20 text-accent; }
   .badge-success { @apply bg-green-500/15 text-[var(--accent3)]; }
   .badge-danger { @apply bg-red-500/15 text-[var(--accent2)]; }
   .badge-muted { @apply bg-surface2 text-[var(--muted)]; }
