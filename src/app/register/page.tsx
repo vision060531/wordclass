@@ -7,23 +7,22 @@ import type { Role } from '@/lib/types'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'student' as Role })
+  const [form, setForm] = useState({ name: '', identifier: '', password: '', role: 'student' as Role })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
   const handleRegister = async () => {
     setError('')
-    if (!form.name || !form.email || !form.password) { setError('모든 항목을 입력해주세요.'); return }
+    if (!form.name || !form.identifier || !form.password) { setError('모든 항목을 입력해주세요.'); return }
     if (form.password.length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return }
     setLoading(true)
     const supabase = await createClient()
+    const email = `${form.identifier}@wordclass.local`
     const { error } = await supabase.auth.signUp({
-      email: form.email,
+      email,
       password: form.password,
-      options: {
-        data: { name: form.name, role: form.role }
-      }
+      options: { data: { name: form.name, role: form.role } }
     })
     if (error) { setError(error.message); setLoading(false) }
     else setDone(true)
@@ -51,35 +50,37 @@ export default function RegisterPage() {
           <div className="text-sm text-[var(--muted)]">회원가입</div>
         </div>
         <div className="card">
+          <div className="flex gap-2 mb-6">
+            {(['student', 'teacher'] as Role[]).map(r => (
+              <button key={r} type="button"
+                className={`btn flex-1 ${form.role === r ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setForm(f => ({ ...f, role: r, identifier: '' }))}>
+                {r === 'student' ? '🎓 학생' : '👩‍🏫 교사'}
+              </button>
+            ))}
+          </div>
+
           <div className="mb-4">
             <label className="block text-xs text-[var(--muted)] mb-1.5">이름</label>
             <input className="input" placeholder="홍길동" value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           </div>
           <div className="mb-4">
-            <label className="block text-xs text-[var(--muted)] mb-1.5">이메일</label>
-            <input className="input" type="email" placeholder="example@email.com" value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+            <label className="block text-xs text-[var(--muted)] mb-1.5">
+              {form.role === 'student' ? '학번' : '교사 번호'}
+            </label>
+            <input className="input" type="text"
+              placeholder={form.role === 'student' ? '예: 20241234' : '예: T001'}
+              value={form.identifier}
+              onChange={e => setForm(f => ({ ...f, identifier: e.target.value }))} />
+            {form.role === 'teacher' && (
+              <p className="text-xs text-[var(--muted)] mt-1">교사 계정은 관리자 승인 후 활성화됩니다.</p>
+            )}
           </div>
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="block text-xs text-[var(--muted)] mb-1.5">비밀번호 (6자 이상)</label>
             <input className="input" type="password" placeholder="••••••••" value={form.password}
               onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
-          </div>
-          <div className="mb-6">
-            <label className="block text-xs text-[var(--muted)] mb-1.5">역할</label>
-            <div className="flex gap-2">
-              {(['student', 'teacher'] as Role[]).map(r => (
-                <button key={r} type="button"
-                  className={`btn flex-1 ${form.role === r ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setForm(f => ({ ...f, role: r }))}>
-                  {r === 'student' ? '🎓 학생' : '👩‍🏫 교사'}
-                </button>
-              ))}
-            </div>
-            {form.role === 'teacher' && (
-              <p className="text-xs text-[var(--muted)] mt-2">교사 계정은 관리자 승인 후 활성화됩니다.</p>
-            )}
           </div>
           {error && <div className="text-xs text-[var(--accent2)] mb-4">{error}</div>}
           <button className="btn btn-primary w-full" onClick={handleRegister} disabled={loading}>
