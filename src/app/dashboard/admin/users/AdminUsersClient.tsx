@@ -2,11 +2,18 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/lib/types'
-import { CheckCircle, XCircle, Trash2 } from 'lucide-react'
+import { CheckCircle, XCircle, Trash2, UserPlus } from 'lucide-react'
 
 export default function AdminUsersClient({ initialUsers }: { initialUsers: Profile[] }) {
   const [users, setUsers] = useState(initialUsers)
   const [filter, setFilter] = useState<'all' | 'pending' | 'teacher' | 'student'>('all')
+  const [showModal, setShowModal] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newId, setNewId] = useState('')
+  const [newRole, setNewRole] = useState<'student' | 'teacher'>('student')
+  const [newPw, setNewPw] = useState('1234')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
   const supabase = createClient()
 
   const approve = async (id: string, approved: boolean) => {
@@ -20,6 +27,27 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: Profi
     setUsers(u => u.filter(x => x.id !== id))
   }
 
+  const createUser = async () => {
+    setCreateError('')
+    if (!newName || !newId) { setCreateError('이름과 학번/교번을 입력해주세요.'); return }
+    setCreating(true)
+    const res = await fetch('/api/admin/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName, identifier: newId, role: newRole, password: newPw })
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setCreateError(data.error || '생성 실패')
+      setCreating(false)
+      return
+    }
+    setUsers(u => [...u, data.profile])
+    setShowModal(false)
+    setNewName(''); setNewId(''); setNewRole('student'); setNewPw('1234')
+    setCreating(false)
+  }
+
   const filtered = users.filter(u => {
     if (filter === 'pending') return !u.approved && u.role !== 'superadmin'
     if (filter === 'teacher') return u.role === 'teacher'
@@ -31,10 +59,49 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: Profi
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">사용자 관리</h1>
-        <p className="text-sm text-[var(--muted)]">전체 사용자를 관리하고 교사 계정을 승인하세요</p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">사용자 관리</h1>
+          <p className="text-sm text-[var(--muted)]">전체 사용자를 관리하고 교사 계정을 승인하세요</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+          <UserPlus size={16} /> 사용자 추가
+        </button>
       </div>
+
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="card w-full max-w-sm">
+            <h2 className="text-lg font-bold mb-4">새 사용자 추가</h2>
+            <div className="mb-3">
+              <label className="block text-xs text-[var(--muted)] mb-1">이름</label>
+              <input className="input" placeholder="홍길동" value={newName} onChange={e => setNewName(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs text-[var(--muted)] mb-1">학번 / 교번</label>
+              <input className="input" placeholder="20241234" value={newId} onChange={e => setNewId(e.target.value)} />
+            </div>
+            <div className="mb-3">
+              <label className="block text-xs text-[var(--muted)] mb-1">역할</label>
+              <select className="input" value={newRole} onChange={e => setNewRole(e.target.value as any)}>
+                <option value="student">학생</option>
+                <option value="teacher">교사</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs text-[var(--muted)] mb-1">초기 비밀번호</label>
+              <input className="input" value={newPw} onChange={e => setNewPw(e.target.value)} />
+            </div>
+            {createError && <p className="text-xs text-[var(--accent2)] mb-3">{createError}</p>}
+            <div className="flex gap-2">
+              <button className="btn btn-secondary flex-1" onClick={() => setShowModal(false)}>취소</button>
+              <button className="btn btn-primary flex-1" onClick={createUser} disabled={creating}>
+                {creating ? '생성 중...' : '생성'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pendingCount > 0 && (
         <div className="mb-4 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-sm text-yellow-400">
@@ -56,7 +123,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: Profi
           <thead>
             <tr className="border-b border-[var(--border)]">
               <th className="text-left p-4 text-xs uppercase tracking-wider text-[var(--muted)]">이름</th>
-              <th className="text-left p-4 text-xs uppercase tracking-wider text-[var(--muted)]">이메일</th>
+              <th className="text-left p-4 text-xs uppercase tracking-wider text-[var(--muted)]">아이디</th>
               <th className="text-left p-4 text-xs uppercase tracking-wider text-[var(--muted)]">역할</th>
               <th className="text-left p-4 text-xs uppercase tracking-wider text-[var(--muted)]">상태</th>
               <th className="text-left p-4 text-xs uppercase tracking-wider text-[var(--muted)]">가입일</th>
@@ -67,7 +134,7 @@ export default function AdminUsersClient({ initialUsers }: { initialUsers: Profi
             {filtered.map(u => (
               <tr key={u.id} className="border-b border-[var(--border)]/50 hover:bg-white/[0.02]">
                 <td className="p-4 font-medium">{u.name}</td>
-                <td className="p-4 text-[var(--muted)]">{u.email}</td>
+                <td className="p-4 text-[var(--muted)]">{u.email?.replace('@wordclass.local', '')}</td>
                 <td className="p-4">
                   <span className={`badge ${u.role === 'teacher' ? 'badge-teacher' : 'badge-muted'}`}>
                     {u.role === 'teacher' ? '교사' : '학생'}
