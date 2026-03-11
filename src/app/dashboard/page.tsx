@@ -1,14 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default async function DashboardHome() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (!profile) redirect('/login')
+export default function DashboardHome() {
+  const router = useRouter()
+  
+  useEffect(() => {
+    router.replace('/dashboard/admin/users')
+  }, [])
 
-  if (profile.role === 'superadmin') redirect('/dashboard/admin/users')
-  if (profile.role === 'teacher') redirect('/dashboard/teacher/classes')
-  redirect('/dashboard/student/classes')
+  return null
 }
