@@ -15,8 +15,8 @@ export default function LoginPage() {
     setLoading(true)
     const supabase = createClient()
     const email = `${identifier}@wordclass.local`
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    if (authError) {
       setError('아이디 또는 비밀번호가 올바르지 않습니다.')
       setLoading(false)
     } else {
