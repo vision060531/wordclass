@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import StudentAssignmentsClient from './StudentAssignmentsClient'
 
 export default async function StudentAssignmentsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   // Get classes the student belongs to
   const { data: memberships } = await supabase
