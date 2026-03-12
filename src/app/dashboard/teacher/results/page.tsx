@@ -1,15 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import TeacherResultsClient from './TeacherResultsClient'
 
 export default async function TeacherResultsPage() {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const teacherId = session?.user?.id ?? ''
 
-  const teacherId = session.user.id
-
-  const { data: classes } = await supabase.from('classes').select('id, name').eq('teacher_id', teacherId)
+  const { data: classes } = teacherId ? await supabase.from('classes').select('id, name').eq('teacher_id', teacherId) : { data: [] }
   const classIds = (classes || []).map(c => c.id)
 
   let results: any[] = []

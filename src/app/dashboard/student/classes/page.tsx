@@ -1,17 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export default async function StudentClassesPage() {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const userId = session?.user?.id ?? ''
 
-  const { data: memberships } = await supabase
+  const { data: memberships } = userId ? await supabase
     .from('class_members')
     .select('*, class:classes(id, name, description, teacher:profiles!teacher_id(name))')
-    .eq('student_id', session.user.id)
+    .eq('student_id', userId) : { data: [] }
 
-  const classes = (memberships || []).map(m => m.class)
+  const classes = (memberships || []).map((m: any) => m.class).filter(Boolean)
 
   return (
     <div>

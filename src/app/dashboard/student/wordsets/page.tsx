@@ -1,19 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import StudentWordsetsClient from './StudentWordsetsClient'
 
 export default async function StudentWordsetsPage() {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const userId = session?.user?.id ?? ''
 
-  const userId = session.user.id
-
-  const { data: myWordsets } = await supabase
+  const { data: myWordsets } = userId ? await supabase
     .from('word_sets')
     .select('*, words:words(count)')
     .eq('created_by', userId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) : { data: [] }
 
   const { data: adminWordsets } = await supabase
     .from('word_sets')

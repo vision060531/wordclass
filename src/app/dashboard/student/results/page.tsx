@@ -1,26 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { format, parseISO } from 'date-fns'
 
 export default async function StudentResultsPage() {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const userId = session?.user?.id ?? ''
 
-  const userId = session.user.id
-
-  const { data: results } = await supabase
+  const { data: results } = userId ? await supabase
     .from('test_results')
     .select('*, assignment:assignments(title)')
     .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) : { data: [] }
 
-  const { data: logs } = await supabase
+  const { data: logs } = userId ? await supabase
     .from('study_logs')
     .select('*, word_set:word_sets(title)')
     .eq('user_id', userId)
     .order('started_at', { ascending: false })
-    .limit(50)
+    .limit(50) : { data: [] }
 
   const totalStudyTime = (logs || []).reduce((s, l) => s + (l.duration_seconds || 0), 0)
   const avgScore = (results || []).length ? Math.round((results || []).reduce((s, r) => s + r.score, 0) / results!.length) : 0

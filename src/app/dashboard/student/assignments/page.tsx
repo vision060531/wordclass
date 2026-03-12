@@ -1,18 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import StudentAssignmentsClient from './StudentAssignmentsClient'
 
 export default async function StudentAssignmentsPage() {
   const supabase = await createClient()
   const { data: { session } } = await supabase.auth.getSession()
-  if (!session) redirect('/login')
+  const userId = session?.user?.id ?? ''
 
-  const userId = session.user.id
-
-  const { data: memberships } = await supabase
+  const { data: memberships } = userId ? await supabase
     .from('class_members')
     .select('class_id')
-    .eq('student_id', userId)
+    .eq('student_id', userId) : { data: [] }
   const classIds = (memberships || []).map(m => m.class_id)
 
   let assignments: any[] = []
@@ -25,11 +22,11 @@ export default async function StudentAssignmentsPage() {
     assignments = data || []
   }
 
-  const { data: myResults } = await supabase
+  const { data: myResults } = userId ? await supabase
     .from('test_results')
     .select('assignment_id, score, passed, created_at')
     .eq('user_id', userId)
-    .not('assignment_id', 'is', null)
+    .not('assignment_id', 'is', null) : { data: [] }
 
   return <StudentAssignmentsClient
     assignments={assignments}
