@@ -54,17 +54,13 @@ export default function AdminWordsetsClient({
   const createWordset = async () => {
     if (!form.title) return
     setUploading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: ws } = await supabase.from('word_sets').insert({
-      title: form.title, description: form.description || null,
-      created_by: user?.id ?? '', class_id: null, is_public: true,
-    }).select().single()
-    if (ws) {
-      if (preview.length > 0) {
-        await supabase.from('words').insert(preview.map((w, i) => ({
-          word_set_id: ws.id, term: w.term, definition: w.definition, example: w.example || null, order_index: i,
-        })))
-      }
+    const res = await fetch('/api/admin/wordsets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: form.title, description: form.description, preview }),
+    })
+    if (res.ok) {
+      const { wordset: ws } = await res.json()
       setWordsets(s => [{ ...ws, words: [{ count: preview.length }], creator: null }, ...s])
     }
     setShowCreate(false); setPreview([]); setForm({ title: '', description: '' }); setUploading(false)

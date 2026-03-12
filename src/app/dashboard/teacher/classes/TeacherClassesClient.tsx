@@ -20,8 +20,10 @@ export default function TeacherClassesClient({
   const createClass = async () => {
     if (!newClass.name) return
     setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const tid = user?.id ?? teacherId
     const { data } = await supabase.from('classes')
-      .insert({ name: newClass.name, description: newClass.description || null, teacher_id: teacherId })
+      .insert({ name: newClass.name, description: newClass.description || null, teacher_id: tid })
       .select('*, members:class_members(count)')
       .single()
     if (data) setClasses(c => [data, ...c])

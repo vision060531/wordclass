@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Trash2, Users } from 'lucide-react'
+import { Trash2, Users, Plus } from 'lucide-react'
 
 interface ClassItem {
   id: string; name: string; description: string | null; created_at: string
@@ -11,7 +11,36 @@ interface ClassItem {
 
 export default function AdminClassesClient({ initialClasses }: { initialClasses: ClassItem[] }) {
   const [classes, setClasses] = useState(initialClasses)
+  const [showCreate, setShowCreate] = useState(false)
+  const [newClass, setNewClass] = useState({ name: '', description: '', teacher_id: '' })
+  const [teachers, setTeachers] = useState<{ id: string; name: string }[]>([])
+  const [creating, setCreating] = useState(false)
   const supabase = createClient()
+
+  const openCreate = async () => {
+    setShowCreate(true)
+    if (teachers.length === 0) {
+      const { data } = await supabase.from('profiles').select('id, name').eq('role', 'teacher').eq('approved', true)
+      setTeachers(data || [])
+    }
+  }
+
+  const createClass = async () => {
+    if (!newClass.name || !newClass.teacher_id) return
+    setCreating(true)
+    const res = await fetch('/api/admin/classes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newClass),
+    })
+    if (res.ok) {
+      const { class: cls } = await res.json()
+      setClasses(c => [cls, ...c])
+    }
+    setShowCreate(false)
+    setNewClass({ name: '', description: '', teacher_id: '' })
+    setCreating(false)
+  }
 
   const deleteClass = async (id: string) => {
     if (!confirm('클래스를 삭제하시겠습니까? 관련 과제와 학생 배정도 모두 삭제됩니다.')) return
@@ -21,10 +50,37 @@ export default function AdminClassesClient({ initialClasses }: { initialClasses:
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">클래스 관리</h1>
-        <p className="text-sm text-[var(--muted)]">전체 클래스 현황을 확인하고 관리하세요</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold mb-1">클래스 관리</h1>
+          <p className="text-sm text-[var(--muted)]">전체 클래스 현황을 확인하고 관리하세요</p>
+        </div>
+        <button className="btn btn-primary" onClick={openCreate}><Plus size={16} /> 클래스 만들기</button>
       </div>
+
+      {showCreate && (
+        <div className="card mb-6">
+          <h2 className="font-bold mb-4">새 클래스</h2>
+          <div className="space-y-3 mb-4">
+            <input className="input" placeholder="클래스 이름" value={newClass.name}
+              onChange={e => setNewClass(f => ({ ...f, name: e.target.value }))} />
+            <input className="input" placeholder="설명 (선택)" value={newClass.description}
+              onChange={e => setNewClass(f => ({ ...f, description: e.target.value }))} />
+            <select className="input" value={newClass.teacher_id}
+              onChange={e => setNewClass(f => ({ ...f, teacher_id: e.target.value }))}>
+              <option value="">담당 교사 선택</option>
+              {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button className="btn btn-primary" onClick={createClass}
+              disabled={creating || !newClass.name || !newClass.teacher_id}>
+              {creating ? '생성 중...' : '만들기'}
+            </button>
+            <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>취소</button>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="card text-center">
