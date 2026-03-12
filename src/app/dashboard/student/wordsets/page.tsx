@@ -4,17 +4,17 @@ import StudentWordsetsClient from './StudentWordsetsClient'
 
 export default async function StudentWordsetsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
 
-  // Personal wordsets (uploaded by student)
+  const userId = session.user.id
+
   const { data: myWordsets } = await supabase
     .from('word_sets')
     .select('*, words:words(count)')
-    .eq('created_by', user!.id)
+    .eq('created_by', userId)
     .order('created_at', { ascending: false })
 
-  // Admin public wordsets
   const { data: adminWordsets } = await supabase
     .from('word_sets')
     .select('*, words:words(count), creator:profiles!created_by(role)')
@@ -24,6 +24,6 @@ export default async function StudentWordsetsPage() {
   return <StudentWordsetsClient
     myWordsets={myWordsets || []}
     adminWordsets={(adminWordsets || []).filter((w: any) => w.creator?.role === 'superadmin')}
-    userId={user!.id}
+    userId={userId}
   />
 }

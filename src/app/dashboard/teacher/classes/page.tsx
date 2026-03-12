@@ -4,16 +4,17 @@ import TeacherClassesClient from './TeacherClassesClient'
 
 export default async function TeacherClassesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+
+  const teacherId = session.user.id
 
   const { data: classes } = await supabase
     .from('classes')
     .select(`*, members:class_members(count)`)
-    .eq('teacher_id', user!.id)
+    .eq('teacher_id', teacherId)
     .order('created_at', { ascending: false })
 
-  // Get all students for adding to classes
   const { data: students } = await supabase
     .from('profiles')
     .select('id, name, email')
@@ -23,6 +24,6 @@ export default async function TeacherClassesPage() {
   return <TeacherClassesClient
     initialClasses={classes || []}
     allStudents={students || []}
-    teacherId={user!.id}
+    teacherId={teacherId}
   />
 }

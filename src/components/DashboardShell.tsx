@@ -113,5 +113,5 @@ function getNavItems(role: string) {
 }
 
 function getRoleLabel(role: string) {
-  return role === 'superadmin' ? '슈퍼관리자' : role === 'teacher' ? '교사' : '학생'
+  return role === 'superadmin' ? '관리자' : role === 'teacher' ? '교사' : '학생'
 }

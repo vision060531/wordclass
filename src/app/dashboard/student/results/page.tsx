@@ -4,19 +4,21 @@ import { format, parseISO } from 'date-fns'
 
 export default async function StudentResultsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
+
+  const userId = session.user.id
 
   const { data: results } = await supabase
     .from('test_results')
     .select('*, assignment:assignments(title)')
-    .eq('user_id', user!.id)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
   const { data: logs } = await supabase
     .from('study_logs')
     .select('*, word_set:word_sets(title)')
-    .eq('user_id', user!.id)
+    .eq('user_id', userId)
     .order('started_at', { ascending: false })
     .limit(50)
 

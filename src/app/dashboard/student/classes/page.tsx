@@ -3,13 +3,13 @@ import { redirect } from 'next/navigation'
 
 export default async function StudentClassesPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
 
   const { data: memberships } = await supabase
     .from('class_members')
     .select('*, class:classes(id, name, description, teacher:profiles!teacher_id(name))')
-    .eq('student_id', user!.id)
+    .eq('student_id', session.user.id)
 
   const classes = (memberships || []).map(m => m.class)
 

@@ -4,14 +4,15 @@ import StudentAssignmentsClient from './StudentAssignmentsClient'
 
 export default async function StudentAssignmentsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) redirect('/login')
 
-  // Get classes the student belongs to
+  const userId = session.user.id
+
   const { data: memberships } = await supabase
     .from('class_members')
     .select('class_id')
-    .eq('student_id', user!.id)
+    .eq('student_id', userId)
   const classIds = (memberships || []).map(m => m.class_id)
 
   let assignments: any[] = []
@@ -24,16 +25,15 @@ export default async function StudentAssignmentsPage() {
     assignments = data || []
   }
 
-  // Get this student's test attempts per assignment
   const { data: myResults } = await supabase
     .from('test_results')
     .select('assignment_id, score, passed, created_at')
-    .eq('user_id', user!.id)
+    .eq('user_id', userId)
     .not('assignment_id', 'is', null)
 
   return <StudentAssignmentsClient
     assignments={assignments}
     myResults={myResults || []}
-    userId={user!.id}
+    userId={userId}
   />
 }

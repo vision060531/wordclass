@@ -1,11 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import AdminResultsClient from './AdminResultsClient'
 
 export default async function AdminResultsPage() {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
 
   const [{ data: results }, { data: logs }] = await Promise.all([
     supabase

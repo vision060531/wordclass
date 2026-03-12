@@ -13,8 +13,8 @@ interface WordSet {
 }
 
 export default function AdminWordsetsClient({
-  initialWordsets, adminId
-}: { initialWordsets: WordSet[]; adminId: string }) {
+  initialWordsets
+}: { initialWordsets: WordSet[] }) {
   const [wordsets, setWordsets] = useState(initialWordsets)
   const [showCreate, setShowCreate] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -54,9 +54,10 @@ export default function AdminWordsetsClient({
   const createWordset = async () => {
     if (!form.title) return
     setUploading(true)
+    const { data: { user } } = await supabase.auth.getUser()
     const { data: ws } = await supabase.from('word_sets').insert({
       title: form.title, description: form.description || null,
-      created_by: adminId, class_id: null, is_public: true,
+      created_by: user?.id ?? '', class_id: null, is_public: true,
     }).select().single()
     if (ws) {
       if (preview.length > 0) {
