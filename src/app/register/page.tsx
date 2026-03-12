@@ -17,15 +17,25 @@ export default function RegisterPage() {
     if (!form.name || !form.identifier || !form.password) { setError('모든 항목을 입력해주세요.'); return }
     if (form.password.length < 6) { setError('비밀번호는 6자 이상이어야 합니다.'); return }
     setLoading(true)
-    const supabase = await createClient()
+    const supabase = createClient()
     const email = `${form.identifier}@wordclass.local`
-    const { error } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password: form.password,
       options: { data: { name: form.name, role: form.role } }
     })
-    if (error) { setError(error.message); setLoading(false) }
-    else setDone(true)
+    if (authError) { setError(authError.message); setLoading(false); return }
+    if (authData.user) {
+      const { error: profileError } = await supabase.from('profiles').insert({
+        id: authData.user.id,
+        email,
+        name: form.name,
+        role: form.role,
+        approved: form.role === 'student',
+      })
+      if (profileError) { setError('프로필 생성 실패: ' + profileError.message); setLoading(false); return }
+    }
+    setDone(true)
   }
 
   if (done) return (
