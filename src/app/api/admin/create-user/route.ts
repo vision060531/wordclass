@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     // Auth에 이미 있으면 해당 유저로 profiles만 생성
     if (authError.message.includes('already been registered') || authError.code === 'email_exists') {
       const { data: existingAuth } = await supabase.auth.admin.listUsers()
-      const found = existingAuth?.users?.find(u => u.email === email)
+      const found = (existingAuth?.users ?? []).find((u: any) => u.email === email)
       if (found) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')

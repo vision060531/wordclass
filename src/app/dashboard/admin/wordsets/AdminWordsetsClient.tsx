@@ -1,23 +1,25 @@
 'use client'
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Upload, BookOpen, Trash2, Eye, Plus, Pencil, Check, X } from 'lucide-react'
+import { Upload, BookOpen, Trash2, Eye, Plus, Pencil, Check, X, Globe, Lock } from 'lucide-react'
 import Papa from 'papaparse'
 import * as XLSX from 'xlsx'
 
 interface Word { id: string; term: string; definition: string; example: string | null; order_index: number }
-interface WordSet { id: string; title: string; description: string | null; class_id: string | null; created_at: string; words: { count: number }[] }
-interface ClassItem { id: string; name: string }
-interface ParsedWord { term: string; definition: string; example: string }
+interface WordSet {
+  id: string; title: string; description: string | null; is_public: boolean
+  created_at: string; words: { count: number }[]
+  creator: { name: string } | null
+}
 
-export default function TeacherWordsetsClient({
-  initialWordsets, classes, teacherId
-}: { initialWordsets: WordSet[]; classes: ClassItem[]; teacherId: string }) {
+export default function AdminWordsetsClient({
+  initialWordsets, adminId
+}: { initialWordsets: WordSet[]; adminId: string }) {
   const [wordsets, setWordsets] = useState(initialWordsets)
-  const [showUpload, setShowUpload] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [preview, setPreview] = useState<ParsedWord[]>([])
-  const [form, setForm] = useState({ title: '', description: '', classId: '' })
+  const [preview, setPreview] = useState<any[]>([])
+  const [form, setForm] = useState({ title: '', description: '' })
   const [viewWords, setViewWords] = useState<{ set: WordSet; words: Word[] } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ term: '', definition: '', example: '' })
@@ -27,11 +29,11 @@ export default function TeacherWordsetsClient({
   const supabase = createClient()
 
   const parseRows = (rows: any[]) => {
-    const parsed: ParsedWord[] = rows.map(r => ({
+    const parsed = rows.map(r => ({
       term: r['단어'] || r['term'] || r['word'] || '',
       definition: r['뜻'] || r['definition'] || r['meaning'] || '',
       example: r['예문'] || r['example'] || '',
-    })).filter(r => r.term && r.definition)
+    })).filter((r: any) => r.term && r.definition)
     setPreview(parsed)
   }
 
@@ -49,20 +51,27 @@ export default function TeacherWordsetsClient({
     }
   }
 
-  const uploadWordset = async () => {
-    if (!form.title || preview.length === 0) return
+  const createWordset = async () => {
+    if (!form.title) return
     setUploading(true)
     const { data: ws } = await supabase.from('word_sets').insert({
       title: form.title, description: form.description || null,
-      created_by: teacherId, class_id: form.classId || null, is_public: false,
+      created_by: adminId, class_id: null, is_public: true,
     }).select().single()
     if (ws) {
-      await supabase.from('words').insert(preview.map((w, i) => ({
-        word_set_id: ws.id, term: w.term, definition: w.definition, example: w.example || null, order_index: i,
-      })))
-      setWordsets(s => [{ ...ws, words: [{ count: preview.length }] }, ...s])
+      if (preview.length > 0) {
+        await supabase.from('words').insert(preview.map((w, i) => ({
+          word_set_id: ws.id, term: w.term, definition: w.definition, example: w.example || null, order_index: i,
+        })))
+      }
+      setWordsets(s => [{ ...ws, words: [{ count: preview.length }], creator: null }, ...s])
     }
-    setShowUpload(false); setPreview([]); setForm({ title: '', description: '', classId: '' }); setUploading(false)
+    setShowCreate(false); setPreview([]); setForm({ title: '', description: '' }); setUploading(false)
+  }
+
+  const togglePublic = async (id: string, current: boolean) => {
+    await supabase.from('word_sets').update({ is_public: !current }).eq('id', id)
+    setWordsets(s => s.map(ws => ws.id === id ? { ...ws, is_public: !current } : ws))
   }
 
   const deleteWordset = async (id: string) => {
@@ -121,7 +130,12 @@ export default function TeacherWordsetsClient({
       <button className="btn btn-secondary btn-sm mb-6" onClick={() => setViewWords(null)}>← 목록으로</button>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">{viewWords.set.title}</h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold">{viewWords.set.title}</h1>
+            <span className={`badge ${viewWords.set.is_public ? 'badge-success' : 'badge-muted'}`}>
+              {viewWords.set.is_public ? '공용' : '비공개'}
+            </span>
+          </div>
           <p className="text-sm text-[var(--muted)]">{viewWords.words.length}개 단어</p>
         </div>
         <button className="btn btn-primary btn-sm" onClick={() => setShowAddWord(s => !s)}>
@@ -175,9 +189,7 @@ export default function TeacherWordsetsClient({
           )
         ))}
         {viewWords.words.length === 0 && (
-          <div className="text-center py-12 text-[var(--muted)]">
-            단어가 없습니다. 위 버튼으로 추가해보세요.
-          </div>
+          <div className="text-center py-12 text-[var(--muted)]">단어가 없습니다. 위 버튼으로 추가해보세요.</div>
         )}
       </div>
     </div>
@@ -187,66 +199,41 @@ export default function TeacherWordsetsClient({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold mb-1">단어 세트</h1>
-          <p className="text-sm text-[var(--muted)]">CSV/엑셀로 업로드하거나 단어를 직접 추가하세요</p>
+          <h1 className="text-2xl font-bold mb-1">단어 세트 관리</h1>
+          <p className="text-sm text-[var(--muted)]">공용 단어 세트를 생성하고 전체 세트를 관리하세요</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowUpload(true)}><Upload size={16} /> 업로드</button>
+        <button className="btn btn-primary" onClick={() => setShowCreate(true)}><Plus size={16} /> 세트 만들기</button>
       </div>
 
-      <div className="mb-6 p-4 rounded-xl bg-surface2 border border-[var(--border)] text-sm">
-        <div className="font-medium mb-2">📄 파일 형식 (CSV / Excel)</div>
-        <div className="font-mono text-xs text-[var(--muted)] space-y-1">
-          <div>단어,뜻,예문</div>
-          <div>ambiguous,모호한,The instructions were ambiguous.</div>
-        </div>
-        <p className="text-xs text-[var(--muted)] mt-2">헤더: 단어/뜻/예문 또는 term/definition/example · .csv .xlsx .xls 지원</p>
-      </div>
-
-      {showUpload && (
+      {showCreate && (
         <div className="card mb-6">
-          <h2 className="font-bold mb-4">새 단어 세트 업로드</h2>
+          <h2 className="font-bold mb-4">새 공용 단어 세트</h2>
           <div className="space-y-3 mb-4">
             <input className="input" placeholder="단어 세트 이름" value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <input className="input" placeholder="설명 (선택)" value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-            <select className="input" value={form.classId} onChange={e => setForm(f => ({ ...f, classId: e.target.value }))}>
-              <option value="">클래스 연결 안함 (개인 세트)</option>
-              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
             <div
-              className="border-2 border-dashed border-[var(--border)] rounded-xl p-8 text-center cursor-pointer hover:border-accent transition-colors"
+              className="border-2 border-dashed border-[var(--border)] rounded-xl p-6 text-center cursor-pointer hover:border-accent transition-colors"
               onClick={() => fileRef.current?.click()}
               onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]) }}
               onDragOver={e => e.preventDefault()}>
-              <Upload size={24} className="mx-auto mb-2 text-[var(--muted)]" />
-              <p className="text-sm text-[var(--muted)]">CSV 또는 Excel 파일을 드래그하거나 클릭해서 선택</p>
-              <p className="text-xs text-[var(--muted)] mt-1">.csv .xlsx .xls 지원</p>
+              <Upload size={20} className="mx-auto mb-2 text-[var(--muted)]" />
+              <p className="text-sm text-[var(--muted)]">CSV / Excel 파일 선택 (선택사항)</p>
+              <p className="text-xs text-[var(--muted)] mt-1">.csv .xlsx .xls · 헤더: 단어,뜻,예문</p>
               <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
                 onChange={e => e.target.files && handleFile(e.target.files[0])} />
             </div>
           </div>
-
           {preview.length > 0 && (
-            <div className="mb-4">
-              <p className="text-sm text-[var(--accent3)] mb-2">✅ {preview.length}개 단어 인식됨</p>
-              <div className="max-h-48 overflow-y-auto space-y-1">
-                {preview.slice(0, 5).map((w, i) => (
-                  <div key={i} className="flex gap-3 text-xs p-2 bg-surface2 rounded">
-                    <span className="font-mono text-accent">{w.term}</span>
-                    <span className="text-[var(--muted)]">{w.definition}</span>
-                  </div>
-                ))}
-                {preview.length > 5 && <p className="text-xs text-[var(--muted)] text-center">... 외 {preview.length - 5}개</p>}
-              </div>
-            </div>
+            <p className="text-sm text-[var(--accent3)] mb-4">✅ {preview.length}개 단어 인식됨</p>
           )}
-
-          <div className="flex gap-2">
-            <button className="btn btn-primary" onClick={uploadWordset} disabled={uploading || !form.title || preview.length === 0}>
-              {uploading ? '업로드 중...' : '업로드'}
+          <div className="flex gap-2 items-center">
+            <button className="btn btn-primary" onClick={createWordset} disabled={uploading || !form.title}>
+              {uploading ? '생성 중...' : '공용 세트 생성'}
             </button>
-            <button className="btn btn-secondary" onClick={() => { setShowUpload(false); setPreview([]) }}>취소</button>
+            <button className="btn btn-secondary" onClick={() => { setShowCreate(false); setPreview([]) }}>취소</button>
+            <span className="text-xs text-[var(--muted)]">파일 없이 만든 뒤 단어를 직접 추가할 수도 있습니다</span>
           </div>
         </div>
       )}
@@ -255,16 +242,27 @@ export default function TeacherWordsetsClient({
         {wordsets.map(ws => (
           <div key={ws.id} className="card">
             <div className="flex items-start justify-between mb-3">
-              <h3 className="font-bold text-sm">{ws.title}</h3>
+              <div>
+                <h3 className="font-bold text-sm mb-1">{ws.title}</h3>
+                <span className={`badge text-xs ${ws.is_public ? 'badge-success' : 'badge-muted'}`}>
+                  {ws.is_public ? '🌐 공용' : '🔒 비공개'}
+                </span>
+              </div>
               <div className="flex gap-1">
-                <button className="btn btn-secondary btn-sm p-1.5" title="단어 보기/편집" onClick={() => openWordset(ws)}><Eye size={14} /></button>
+                <button
+                  className="btn btn-secondary btn-sm p-1.5"
+                  title={ws.is_public ? '비공개로 전환' : '공용으로 전환'}
+                  onClick={() => togglePublic(ws.id, ws.is_public)}>
+                  {ws.is_public ? <Lock size={13} /> : <Globe size={13} />}
+                </button>
+                <button className="btn btn-secondary btn-sm p-1.5" onClick={() => openWordset(ws)}><Eye size={14} /></button>
                 <button className="btn btn-danger btn-sm p-1.5" onClick={() => deleteWordset(ws.id)}><Trash2 size={14} /></button>
               </div>
             </div>
             {ws.description && <p className="text-xs text-[var(--muted)] mb-2">{ws.description}</p>}
-            <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-              <BookOpen size={13} />
-              <span>{ws.words?.[0]?.count ?? 0}개 단어</span>
+            <div className="flex items-center justify-between text-xs text-[var(--muted)]">
+              <span className="flex items-center gap-1"><BookOpen size={13} /> {ws.words?.[0]?.count ?? 0}개 단어</span>
+              {ws.creator && <span>{ws.creator.name}</span>}
             </div>
           </div>
         ))}

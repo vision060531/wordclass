@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import TeacherWordsetsClient from './TeacherWordsetsClient'
 
 export default async function TeacherWordsetsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: wordsets } = await supabase
     .from('word_sets')

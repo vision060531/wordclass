@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import TeacherResultsClient from './TeacherResultsClient'
 
 export default async function TeacherResultsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   // Get classes the teacher manages
   const { data: classes } = await supabase.from('classes').select('id, name').eq('teacher_id', user!.id)
