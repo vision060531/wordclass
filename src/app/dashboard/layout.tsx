@@ -12,25 +12,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const check = async () => {
       const supabase = createClient()
-      console.log('1. checking user...')
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
-      console.log('2. user:', user, 'error:', userError)
-      if (!user) { 
-        console.log('3. no user, redirecting to login')
-        router.replace('/login')
-        return 
-      }
-      console.log('4. fetching profile for:', user.id)
-      const { data: p, error: profileError } = await supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.replace('/login'); return }
+
+      let p: any = null
+
+      // 1차: 직접 조회
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single()
-      console.log('5. profile:', p, 'error:', profileError)
-      if (profileError || !p) { 
-        router.replace('/login')
-        return 
+
+      if (data) {
+        p = data
+      } else {
+        // 2차: 없거나 RLS 막힌 경우 → 서버 API로 service role 사용해 생성/조회
+        try {
+          const res = await fetch('/api/auth/profile', { method: 'POST' })
+          if (res.ok) {
+            const json = await res.json()
+            p = json.profile
+          }
+        } catch {}
       }
+
+      if (!p) { router.replace('/login'); return }
       if (!p.approved) { router.replace('/pending'); return }
       setProfile(p)
       setLoading(false)
